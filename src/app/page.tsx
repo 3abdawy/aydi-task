@@ -1,95 +1,145 @@
+// @ts-nocheck
+"use client";
+
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import styles from "./page.module.css";
+import { v4 as uuidv4 } from "uuid";
+import { DndProvider, useDrag, useDrop } from "react-dnd";
+import { HTML5Backend } from "react-dnd-html5-backend";
+import { FaPencilAlt, FaTrash, FaSave, FaGamepad } from "react-icons/fa";
+import ListItem from "./components/ListItem";
 
-export default function Home() {
+// Fake API functions
+const fakeAPI = {
+  getItems: () => [
+    { id: uuidv4(), barcode: "1234567890" },
+    { id: uuidv4(), barcode: "0987654321" },
+    { id: uuidv4(), barcode: "4567891234" },
+    { id: uuidv4(), barcode: "3216549870" },
+  ],
+  updateItem: (id, newBarcode) => {
+    console.log(`Item ${id} updated with barcode: ${newBarcode}`);
+  },
+  deleteItem: (id) => {
+    console.log(`Item ${id} deleted.`);
+  },
+  updateOrder: (newOrder) => {
+    console.log("New order:", newOrder);
+  },
+};
+
+const Home = () => {
+  const [items, setItems] = useState([]);
+  const [isGamified, setIsGamified] = useState(false);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [isSwapping, setIsSwapping] = useState(false);
+
+  useEffect(() => {
+    // Simulate API call to get items
+    const fetchedItems = fakeAPI.getItems();
+    setItems(fetchedItems);
+  }, []);
+  const handleEditItem = (id, newBarcode) => {
+    fakeAPI.updateItem(id, newBarcode);
+    setItems((prevItems) =>
+      prevItems.map((item) =>
+        item.id === id ? { ...item, barcode: newBarcode } : item
+      )
+    );
+  };
+
+  const handleDeleteItem = (id) => {
+    fakeAPI.deleteItem(id);
+    setItems((prevItems) => prevItems.filter((item) => item.id !== id));
+  };
+
+  const moveItem = (fromIndex, toIndex) => {
+    const updatedItems = [...items];
+    const [movedItem] = updatedItems.splice(fromIndex, 1);
+    updatedItems.splice(toIndex, 0, movedItem);
+    setItems(updatedItems);
+    fakeAPI.updateOrder(updatedItems);
+  };
+  const swapItemsTemporarily = () => {
+    setIsSwapping(true);
+    const updatedItems = [...items];
+    const temp = updatedItems[0];
+    setItems(updatedItems);
+
+    setTimeout(() => {
+      setIsSwapping(false); // Remove the swap animation
+      setItems((prevItems) => {
+        const revertedItems = [...prevItems];
+        return revertedItems;
+      });
+    }, 1500);
+  };
+
+  const handleToggleGamifiedMode = () => {
+    setIsGamified(!isGamified);
+    if (!isGamified) {
+      // Trigger initial animation when enabling gamified mode
+      swapItemsTemporarily();
+    }
+  };
+
   return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="https://nextjs.org/icons/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol>
-          <li>
-            Get started by editing <code>src/app/page.tsx</code>.
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
-
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className={styles.logo}
-              src="https://nextjs.org/icons/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-            className={styles.secondary}
-          >
-            Read our docs
-          </a>
-        </div>
+    <div>
+      <main>
+        <DndProvider backend={HTML5Backend}>
+          <div style={{ padding: "20px" }}>
+            <button
+              onClick={handleToggleGamifiedMode}
+              style={{
+                backgroundColor: isGamified ? "red" : "#000",
+                border: "none",
+                color: "white",
+                borderRadius: "100%",
+                padding: "15px",
+                alignItems: "center",
+                justifyContent: "center",
+                display: "flex",
+                fontSize: "100px",
+                cursor: "pointer",
+                marginBottom: "20px",
+              }}
+            >
+              <FaGamepad />
+            </button>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "20px",
+                width: "60%",
+                margin: "auto",
+              }}
+            >
+              {items.map((item, index) => (
+                <div
+                  key={item.id}
+                  className={`list-item ${
+                    isSwapping && index < 2 ? "swapping" : ""
+                  }`}
+                >
+                  <ListItem
+                    key={item.id}
+                    item={item}
+                    index={index}
+                    moveItem={moveItem}
+                    isGamified={isGamified}
+                    onEdit={handleEditItem}
+                    onDelete={handleDeleteItem}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        </DndProvider>
       </main>
-      <footer className={styles.footer}>
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
     </div>
   );
-}
+};
+
+export default Home;

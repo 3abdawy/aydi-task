@@ -40,3 +40,46 @@ a {
     color-scheme: dark;
   }
 }
+
+.gamified-hover:hover {
+  cursor: pointer;
+  background-color: #9e0142; 
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.6); 
+}
+
+.list-item {
+  position: relative;
+  transition: transform 0.5s ease;
+}
+
+.swapping:nth-child(1) {
+  animation: swapDown 1.5s ease forwards;
+}
+
+.swapping:nth-child(2) {
+  animation: swapUp 1.5s ease forwards; 
+}
+
+@keyframes swapDown {
+  0% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(140px); 
+  }
+  100% {
+    transform: translateY(0); 
+  }
+}
+
+@keyframes swapUp {
+  0% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-60px);
+  }
+  100% {
+    transform: translateY(0); 
+  }
+}
