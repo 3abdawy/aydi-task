@@ -12,20 +12,54 @@ import ListItem from "./components/ListItem";
 
 // Fake API functions
 const fakeAPI = {
-  getItems: () => [
+  items: [
     { id: uuidv4(), barcode: "1234567890" },
     { id: uuidv4(), barcode: "0987654321" },
     { id: uuidv4(), barcode: "4567891234" },
     { id: uuidv4(), barcode: "3216549870" },
   ],
+
+  getItems: function () {
+    return this.items;
+  },
+
   updateItem: (id, newBarcode) => {
     console.log(`Item ${id} updated with barcode: ${newBarcode}`);
   },
   deleteItem: (id) => {
     console.log(`Item ${id} deleted.`);
   },
-  updateOrder: (newOrder) => {
-    console.log("New order:", newOrder);
+  updateOrder: (sortedIds) => {
+    console.log("Sending sorted IDs to backend:", sortedIds);
+
+    return new Promise((resolve, reject) => {
+      setTimeout(() => {
+        const reorderedItems = sortedIds
+          .map((id) => {
+            // Find the item by its ID
+            const foundItem = fakeAPI.items.find((item) => item.id === id);
+            if (!foundItem) {
+              console.error(`Item with ID ${id} not found!`);
+              return null; // Return null if the item doesn't exist
+            }
+            return foundItem;
+          })
+          .filter(Boolean); // Remove any null values
+
+        // Check if all items were found
+        if (reorderedItems.length !== sortedIds.length) {
+          reject(new Error("Some items could not be found based on the IDs."));
+        } else {
+          // Update the internal items array with the reordered items
+          fakeAPI.items = reorderedItems;
+          console.log(
+            "New order saved on backend:",
+            fakeAPI.items.map((item) => item.id)
+          );
+          resolve(fakeAPI.items); // Return the reordered items
+        }
+      }, 3000); // Simulate network delay
+    });
   },
 };
 
@@ -58,8 +92,19 @@ const Home = () => {
     const updatedItems = [...items];
     const [movedItem] = updatedItems.splice(fromIndex, 1);
     updatedItems.splice(toIndex, 0, movedItem);
+
+    // Get the new sorted IDs based on the updated items array
+    const sortedIds = updatedItems.map((item) => item.id);
     setItems(updatedItems);
-    fakeAPI.updateOrder(updatedItems);
+    // Send the sorted IDs to the backend
+    fakeAPI
+      .updateOrder(sortedIds)
+      .then((returnedItems) => {
+        console.log("Order updated successfully:", returnedItems);
+      })
+      .catch((error) => {
+        console.error("Error updating order:", error);
+      });
   };
   const swapItemsTemporarily = () => {
     setIsSwapping(true);
